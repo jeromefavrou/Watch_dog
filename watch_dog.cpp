@@ -65,8 +65,10 @@ bool Watch_dog::init_server(uint32_t const port)
 
 void Watch_dog::main_loop_server(void)
 {
-    std::clog << "main loop server running" << std::endl;
+    if(this->Server==nullptr)
+        return ;
 
+    std::clog << "main loop server running" << std::endl;
 
     std::clog << "main loop server ending" << std::endl;
 }
