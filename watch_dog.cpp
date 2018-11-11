@@ -22,6 +22,42 @@ Watch_dog::~Watch_dog()
         this->Server=nullptr;
 }
 
+void Watch_dog::update_debit(void)
+{
+    double time_ms(1000),elaps(0);
+
+    long int q(0),l(0);
+    float r(0);
+
+    std::chrono::time_point<std::chrono::system_clock> start;
+
+    while(true)
+    {
+        start = std::chrono::system_clock::now();
+
+        l=q;
+        q=0;
+
+        this->devices->update();
+        for(auto & d : this->devices->get_device())
+        {
+            if(d.identity.mac_addr=="00:00:00:00:00:00") // <- ignore virtual interface
+                continue;
+
+            q+=d.tx.bytes;
+        }
+
+        r=static_cast<float>(q-l)/(1000*1000);
+
+        elaps=std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
+        std::this_thread::sleep_for(std::chrono::duration<double,std::milli>(time_ms-elaps));
+
+        this->debit_Mo_s=r/(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count());
+
+        std::cout << this->debit_Mo_s << " Mo/s" <<std::endl;
+    }
+}
+
 
 bool Watch_dog::init_server(uint32_t const port)
 {
@@ -69,6 +105,7 @@ void Watch_dog::main_loop_server(void)
         return ;
 
     std::clog << "main loop server running" << std::endl;
+
 
     std::clog << "main loop server ending" << std::endl;
 }

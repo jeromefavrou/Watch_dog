@@ -47,6 +47,10 @@ void Net_devices::display(void)noexcept
        std::cout <<std::endl;
     }
 }
+std::vector<Net_devices::Device> Net_devices::get_device(void) const
+{
+    return this->devices;
+}
 
 size_t Net_devices::size(void)const noexcept
 {

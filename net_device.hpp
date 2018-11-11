@@ -33,6 +33,8 @@ public:
 
     size_t size(void)const noexcept;
 
+    std::vector<Device> get_device(void) const;
+
 private:
     const std::string file_src;
     const std::string file_stat;

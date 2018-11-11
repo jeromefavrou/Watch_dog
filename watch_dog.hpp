@@ -14,8 +14,8 @@ public:
     bool init_server(uint32_t const port);
     void accecpt_client(void);//-> in main_loop_server
     void main_loop_server(void);
-
     void update_debit(void);
+
     void watch(void);
 
     ~Watch_dog(void);
@@ -27,13 +27,14 @@ private:
         bool quarentine:1;
     };
 
+
     void server_client(void);
     void restart(void);
     void stop(void);
     void quarentine(void);
     void log(void);
 
-    long int debit_Mo_s;
+    float debit_Mo_s;
 
     State states;
     std::unique_ptr<Net_devices> devices;
