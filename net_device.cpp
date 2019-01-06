@@ -1,6 +1,6 @@
 #include "net_device.hpp"
 
-Net_devices::Net_devices(void):file_src("/sys/class/net"),file_stat("/statistics"){}
+Net_devices::Net_devices(void):file_src("/sys/class/net/"),file_stat("/statistics"){}
 
 void Net_devices::load(void)noexcept
 {

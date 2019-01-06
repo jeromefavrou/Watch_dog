@@ -4,8 +4,20 @@ Watch_dog::Watch_dog():Server(nullptr)
 {
     this->devices=std::make_unique<Net_devices>(Net_devices());
     this->devices->load();
-    this->debit_Mo_s=0;
-    //this->devices->display();
+
+    long int q(0);
+
+    for(auto & d : this->devices->get_device())
+    {
+        if(d.identity.mac_addr=="00:00:00:00:00:00") // <- ignore virtual interface
+            continue;
+
+        q+=d.tx.bytes;
+    }
+
+    this->debit_Mo_s=static_cast<float>(q)/(1000*1000);
+
+    this->devices->display();//for debug
 }
 
 Watch_dog::~Watch_dog()
@@ -22,11 +34,11 @@ Watch_dog::~Watch_dog()
         this->Server=nullptr;
 }
 
-void Watch_dog::update_debit(void)
+void Watch_dog::update_debit(float time_ms)
 {
-    double time_ms(1000),elaps(0);
+    float elaps(0);
 
-    long int q(0),l(0);
+    long int q(this->debit_Mo_s*(1000*1000)),l(0);
     float r(0);
 
     std::chrono::time_point<std::chrono::system_clock> start;
@@ -49,10 +61,10 @@ void Watch_dog::update_debit(void)
 
         r=static_cast<float>(q-l)/(1000*1000);
 
-        elaps=std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
-        std::this_thread::sleep_for(std::chrono::duration<double,std::milli>(time_ms-elaps));
+        elaps=static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()-start).count())/1000;
+        std::this_thread::sleep_for(std::chrono::duration<float,std::milli>(time_ms-elaps));
 
-        this->debit_Mo_s=r/(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count());
+        this->debit_Mo_s=r/(static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()-start).count())/1000);
 
         std::cout << this->debit_Mo_s << " Mo/s" <<std::endl;
     }
@@ -77,9 +89,9 @@ bool Watch_dog::init_server(uint32_t const port)
     {
         std::cerr << "init server failed: "<< error << std::endl;
 
-        this->Server->CloseSocket(0);
+        cmd_unix::notify_send("init server failed: "+ error);
 
-        this->Server.release();
+        this->Server->CloseSocket(0);
 
         return false;
     }
@@ -87,16 +99,23 @@ bool Watch_dog::init_server(uint32_t const port)
     {
         std::cerr << "init server failed: "<< error.what() << std::endl;
 
-        this->Server->CloseSocket(0);
+        cmd_unix::notify_send("init server failed: "+ std::string(error.what()));
 
-        this->Server.release();
+        this->Server->CloseSocket(0);
 
         return false;
     }
 
     std::cerr << "init server failed: ??? error"<< std::endl;
 
+    cmd_unix::notify_send("init server failed: ??? error");
+
     return false;
+}
+
+void Watch_dog::accecpt_client(void)
+{
+
 }
 
 void Watch_dog::main_loop_server(void)
@@ -106,6 +125,9 @@ void Watch_dog::main_loop_server(void)
 
     std::clog << "main loop server running" << std::endl;
 
+    std::thread ac(&Watch_dog::accecpt_client,this);
+
+    ac.join();
 
     std::clog << "main loop server ending" << std::endl;
 }

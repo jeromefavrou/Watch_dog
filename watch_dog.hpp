@@ -14,7 +14,7 @@ public:
     bool init_server(uint32_t const port);
     void accecpt_client(void);//-> in main_loop_server
     void main_loop_server(void);
-    void update_debit(void);
+    void update_debit(float time_ms);
 
     void watch(void);
 
@@ -27,8 +27,8 @@ private:
         bool quarentine:1;
     };
 
-
     void server_client(void);
+
     void restart(void);
     void stop(void);
     void quarentine(void);
