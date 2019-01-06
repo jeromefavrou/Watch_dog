@@ -2,21 +2,27 @@
 
 std::vector<std::string> cmd_unix::ls(std::string const & file)noexcept
 {
-    ///extraction de la commande ls de unix dans un fichier temporaire
-    system(std::string("ls "+file+" > tps_ls.cmd_unix").c_str());
-
     ///importation du resultat dans la memoire vive du programme
     std::vector<std::string> mem_ls;
-    std::string rep("");
-    std::fstream If;
-    If.exceptions(std::ifstream::badbit);
 
     try
     {
-        If.open("tps_ls.cmd_unix",std::ios::in);
+        DIR & rep = *opendir(std::string(file+".").c_str());
 
-        while(getline(If,rep))
-            mem_ls.push_back(rep);
+        if (&rep != nullptr)
+        {
+            struct dirent * ent;
+
+            while ((ent = readdir(&rep)) != nullptr)
+            {
+                if(std::string(ent->d_name)=="." || std::string(ent->d_name)=="..")
+                    continue;
+                else
+                    mem_ls.push_back(ent->d_name);
+            }
+
+            closedir(&rep);
+        }
     }
     catch(std::system_error& e)
     {
@@ -27,9 +33,12 @@ std::vector<std::string> cmd_unix::ls(std::string const & file)noexcept
         std::cerr <<file+"-echec listing (ls): " << e.what() <<std::endl;
     }
 
-    ///supression du fichier temporaire
-    std::remove("tps_ls.cmd_unix");
-
     ///retour du resultat
     return mem_ls;
 }
+
+void cmd_unix::notify_send(std::string const & msg)noexcept
+{
+    system(std::string("notify-send -u normal -i logo.png \"Watch_Dog\" \""+msg+"\" -t 10").c_str());
+}
+

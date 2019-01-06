@@ -7,14 +7,18 @@
 #include <cstdlib>
 #include <fstream>
 #include <chrono>
+#include <dirent.h>
 
 namespace cmd_unix
 {
     std::vector<std::string> ls(std::string const & file)noexcept;
+    void notify_send(std::string const & msg)noexcept;
 }
 namespace timer
 {
     //void lim_cpu(std::chrono::duration const & en)noexcept;
+    //ton
+    //tof
 }
 
 template<class T> T Extract_one_data(std::string const & file)noexcept
