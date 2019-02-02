@@ -41,7 +41,6 @@ private:
     bool rcv_data(std::stringstream & data);
     bool check_pwd(void);
 
-
     void restart(void);
     void stop(void);
     void quarentine(void);

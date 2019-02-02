@@ -71,7 +71,7 @@ void Watch_dog::update_debit(float time_ms)
 
         r=static_cast<float>(q-l)/(1000*1000);
 
-        elaps=static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()-start).count())/1000;
+        elaps=static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()-start).count());
         std::this_thread::sleep_for(std::chrono::duration<float,std::milli>(time_ms-elaps));
 
         this->debit_Mo_s=r/(static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()-start).count())/1000);
@@ -118,8 +118,6 @@ bool Watch_dog::init_server(uint32_t const port)
     {
         std::cerr << "init server failed: "<< error << std::endl;
 
-        cmd_unix::notify_send("init server failed: "+ error);
-
         this->Server->CloseSocket(0);
 
         return false;
@@ -127,8 +125,6 @@ bool Watch_dog::init_server(uint32_t const port)
     catch(std::exception const & error)
     {
         std::cerr << "init server failed: "<< error.what() << std::endl;
-
-        cmd_unix::notify_send("init server failed: "+ std::string(error.what()));
 
         this->Server->CloseSocket(0);
 
@@ -148,12 +144,13 @@ void Watch_dog::accept_client(void)
     {
         if(!this->states.as_client)
         {
+            this->password="";
+            this->states.monitor=false;
             this->Server->AcceptClient(0,0);
             this->states.as_client=true;
         }
-
         //limite l'utilisation de la cpu (ms)
-        std::this_thread::sleep_for(std::chrono::duration<int,std::milli>(200));
+        std::this_thread::sleep_for(std::chrono::duration<int,std::milli>(500));
     }
 }
 
@@ -173,9 +170,43 @@ void Watch_dog::main_loop_server(void)
         if(this->auth())
         {
             std::stringstream DataBuffer;
+            std::string word("");
+            Tram RepData;
 
             if(!this->rcv_data(DataBuffer))
                 continue;
+
+            DataBuffer >> word;
+
+            if(word=="HELP")
+            {
+                RepData.clear();
+                RepData+="WD>\n";
+                RepData+="CMD [ACTION] [VALUE]\n";
+                RepData+="CMD: MONITOR \n";
+                RepData+="ACTION: GET;SET\n";
+                RepData+="VALUE: TRUE;1;FLASE;0\n\n";
+
+                this->Server->Write(0,RepData.get_c_data());
+            }
+            else if(word=="MONITOR")
+            {
+                DataBuffer >> word;
+                if(word=="SET")
+                {
+                    DataBuffer >> word;
+                    this->states.monitor=word=="TRUE"||word=="1"?true:false;
+                }
+                else if(word=="GET")
+                {
+                    RepData.clear();
+                    RepData+="WD> ";
+                    RepData+=this->states.monitor?"true":"false";
+                    RepData+="\n";
+                    this->Server->Write(0,RepData.get_c_data());
+                }
+            }
+
         }
         //limite l'utilisation de la cpu (ms)
         std::this_thread::sleep_for(std::chrono::duration<int,std::milli>(200));
@@ -202,6 +233,7 @@ bool Watch_dog::rcv_data(std::stringstream & data)
         #endif // _DEBUG_MOD
 
         this->states.as_client=false;
+
         return false;
     }
     //sinon si requete reçu
@@ -237,7 +269,7 @@ bool Watch_dog::auth(void)
 
     Tram RepData;
     std::stringstream DataBuffer;
-
+    RepData+="WD> ";
     RepData+="Password: ";
 
     this->Server->Write(0,RepData.get_c_data());
@@ -254,13 +286,19 @@ bool Watch_dog::auth(void)
 
     if(!this->check_pwd())
     {
+        RepData+="WD> ";
         RepData+="invalide password\n";
         this->Server->Write(0,RepData.get_c_data());
 
         return false;
     }
     else
+    {
+        RepData+="WD> ";
+        RepData+="enter HELP for show cmd possible\n";
+        this->Server->Write(0,RepData.get_c_data());
         return true;
+    }
 
     return false;
 }
