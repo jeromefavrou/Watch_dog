@@ -1,10 +1,13 @@
 #ifndef WATCH_DOG_HPP_INCLUDED
 #define WATCH_DOG_HPP_INCLUDED
 
+#define _DEBUG_MOD
+
 #include "net_device.hpp"
 #include "serveur.cpp" //passer hpp
 #include <thread>
 #include <memory>
+#include <sstream>
 
 class Watch_dog
 {
@@ -12,7 +15,6 @@ public:
     Watch_dog(void);
 
     bool init_server(uint32_t const port);
-    void accecpt_client(void);//-> in main_loop_server
     void main_loop_server(void);
     void update_debit(float time_ms);
 
@@ -25,9 +27,13 @@ private:
     {
         bool stopping:1;
         bool quarentine:1;
+        bool as_client:1;
+        bool tcp_ip:1;
+        bool monitor:1;
     };
 
     void server_client(void);
+    void accept_client(void);
 
     void restart(void);
     void stop(void);
@@ -35,6 +41,7 @@ private:
     void log(void);
 
     float debit_Mo_s;
+
 
     State states;
     std::unique_ptr<Net_devices> devices;

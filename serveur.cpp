@@ -41,7 +41,7 @@ class CSocketTCPServeur
         if(*Sk_Channel[idx]==INVALID_SOCKET)
             throw std::string("Socket Serveur[\033[1;5;35mNOK\033[0m]");
 
-        std::cout<<"Socket ["<<idx<<"][\033[1;33mOK\033[0m]"<<std::endl;
+        //std::cout<<"Socket ["<<idx<<"][\033[1;33mOK\033[0m]"<<std::endl;
     }
 
     void CloseSocket(unsigned int const & idx)
@@ -71,7 +71,7 @@ class CSocketTCPServeur
         if(bind(*Sk_Channel[idx],(struct sockaddr *)&ServerAdress,sizeof(ServerAdress))==SOCKET_ERROR)
             throw std::string("bind [\033[1;5;35mNOK\033[0m]");
 
-        std::cout<<"bind [\033[1;33mOK\033[0m] => server listen on: "<<addr<<":"<<port<<std::endl;
+        //std::cout<<"bind [\033[1;33mOK\033[0m] => server listen on: "<<addr<<":"<<port<<std::endl;
     }
     void Listen(unsigned int const &idx,unsigned int const &nb)
     {
@@ -98,7 +98,7 @@ class CSocketTCPServeur
         if(*Sk_Client[idxclient]<0)
             throw std::string("Connection [\033[1;5;35mNOK\033[0m]");
 
-        std::cout<<"\nConnection [\033[1;33mOK\033[0m] with "<<inet_ntoa(ClientAdress.sin_addr)<<":"<<ntohs(ClientAdress.sin_port)<<std::endl;
+        //std::cout<<"\nConnection [\033[1;33mOK\033[0m] with "<<inet_ntoa(ClientAdress.sin_addr)<<":"<<ntohs(ClientAdress.sin_port)<<std::endl;
 
     }
 

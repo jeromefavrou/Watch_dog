@@ -96,7 +96,7 @@ class Tram
 
             return *this;
         }
-	Tram operator+=(char const & add)
+        Tram operator+=(char const & add)
         {
             this->m_data.push_back(add);
 
