@@ -5,9 +5,12 @@
 
 #include "net_device.hpp"
 #include "serveur.cpp" //passer hpp
+#include "picosha2.hpp"
 #include <thread>
 #include <memory>
 #include <sstream>
+#include <fstream>
+
 
 class Watch_dog
 {
@@ -34,6 +37,10 @@ private:
 
     void server_client(void);
     void accept_client(void);
+    bool auth(void);
+    bool rcv_data(std::stringstream & data);
+    bool check_pwd(void);
+
 
     void restart(void);
     void stop(void);
@@ -42,7 +49,7 @@ private:
 
     float debit_Mo_s;
 
-
+    std::string password;
     State states;
     std::unique_ptr<Net_devices> devices;
     std::unique_ptr<CSocketTCPServeur> Server;

@@ -8,6 +8,8 @@ Watch_dog::Watch_dog():Server(nullptr)
     this->states.tcp_ip=false;
     this->states.monitor=false;
 
+    this->password="";
+
     this->devices=std::make_unique<Net_devices>(Net_devices());
     this->devices->load();
 
@@ -168,50 +170,13 @@ void Watch_dog::main_loop_server(void)
 
     while(this->states.tcp_ip)
     {
-        if(this->states.as_client)
+        if(this->auth())
         {
-            Tram BufferReq;
-            Tram RepData;
+            std::stringstream DataBuffer;
 
-            RepData+="Password: ";
-
-            this->Server->Write(0,RepData.get_c_data());
-
-            RepData.clear();
-
-            //ecoute en attante d'une requte du client.(bloquant)
-            int length=this->Server->Read<2048>(0,BufferReq.get_data());
-
-            //si deconnection du client
-            if(length==0)
-            {
-                #ifdef _DEBUG_MOD
-                std::clog<<"Le client à déconnecté"<<std::endl;
-                #endif // _DEBUG_MOD
-
-                this->states.as_client=false;
-            }
-            //sinon si requete reçu
-            else if(length>0)
-            {
-                //affichage tram (hexa)
-                #ifdef _DEBUG_MOD
-                for(auto &i : BufferReq.get_data())
-                    std::clog <<"0x"<<std::hex <<static_cast<int>(i)<<" " ;
-                std::clog <<std::dec<< std::endl;
-                #endif // _DEBUG_MOD
-
-                //supression des 2 octets de fin de trensmission (tlenet)
-                BufferReq.get_data().erase(BufferReq.get_c_data().end()-2,BufferReq.get_c_data().end());
-
-                std::stringstream ss_buffer;
-
-                ss_buffer << BufferReq.get_data().data();
-
-                //this->Server->Write(0,interpretteur(BufferReq,apn).get_c_data());
-            }
+            if(!this->rcv_data(DataBuffer))
+                continue;
         }
-
         //limite l'utilisation de la cpu (ms)
         std::this_thread::sleep_for(std::chrono::duration<int,std::milli>(200));
     }
@@ -222,3 +187,86 @@ void Watch_dog::main_loop_server(void)
     std::clog << "main loop server ending" << std::endl;
     #endif // _DEBUG_MOD
 }
+
+bool Watch_dog::rcv_data(std::stringstream & data)
+{
+    VCHAR BufferReq;
+
+    int length=this->Server->Read<2048>(0,BufferReq);
+
+    //si deconnection du client
+    if(length==0)
+    {
+        #ifdef _DEBUG_MOD
+        std::clog<<"Le client à déconnecté"<<std::endl;
+        #endif // _DEBUG_MOD
+
+        this->states.as_client=false;
+        return false;
+    }
+    //sinon si requete reçu
+    else if(length>0)
+    {
+        //affichage tram (hexa)
+        #ifdef _DEBUG_MOD
+        for(auto &i : BufferReq)
+            std::clog <<"0x"<<std::hex <<static_cast<int>(i)<<" " ;
+        std::clog <<std::dec<< std::endl;
+        #endif // _DEBUG_MOD
+
+        //supression des 2 octets de fin de trensmission (tlenet)
+        BufferReq.erase(BufferReq.end()-2,BufferReq.end());
+
+        data.clear();
+
+        data << BufferReq.data();
+
+        return true;
+    }
+
+    return false;
+}
+
+bool Watch_dog::auth(void)
+{
+    if(!this->states.as_client)
+        return false;
+
+    if(this->check_pwd())
+        return true;
+
+    Tram RepData;
+    std::stringstream DataBuffer;
+
+    RepData+="Password: ";
+
+    this->Server->Write(0,RepData.get_c_data());
+
+    DataBuffer.clear();
+    RepData.clear();
+
+    if(!this->rcv_data(DataBuffer))
+        return false;
+
+    DataBuffer >> this->password;
+
+    DataBuffer.clear();
+
+    if(!this->check_pwd())
+    {
+        RepData+="invalide password\n";
+        this->Server->Write(0,RepData.get_c_data());
+
+        return false;
+    }
+    else
+        return true;
+
+    return false;
+}
+
+bool Watch_dog::check_pwd(void)
+{
+    return Extract_one_data<std::string>("pwd_hash")==picosha2::hash256_hex_string(this->password);
+}
+
