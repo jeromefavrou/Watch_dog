@@ -88,11 +88,7 @@ void Watch_dog::update_debit(float time_ms)
             std::string deb;
             float2str >> deb;
 
-            Tram RepData;
-            RepData+=deb;
-            RepData+=" Mo/s\n";
-
-            this->Server->Write(0,RepData.get_c_data());
+            this->single_send(deb+std::string("Mo/s"));
         }
     }
 }
@@ -176,36 +172,7 @@ void Watch_dog::main_loop_server(void)
             if(!this->rcv_data(DataBuffer))
                 continue;
 
-            DataBuffer >> word;
-
-            if(word=="HELP")
-            {
-                RepData.clear();
-                RepData+="WD>\n";
-                RepData+="CMD [ACTION] [VALUE]\n";
-                RepData+="CMD: MONITOR \n";
-                RepData+="ACTION: GET;SET\n";
-                RepData+="VALUE: TRUE;1;FLASE;0\n\n";
-
-                this->Server->Write(0,RepData.get_c_data());
-            }
-            else if(word=="MONITOR")
-            {
-                DataBuffer >> word;
-                if(word=="SET")
-                {
-                    DataBuffer >> word;
-                    this->states.monitor=word=="TRUE"||word=="1"?true:false;
-                }
-                else if(word=="GET")
-                {
-                    RepData.clear();
-                    RepData+="WD> ";
-                    RepData+=this->states.monitor?"true":"false";
-                    RepData+="\n";
-                    this->Server->Write(0,RepData.get_c_data());
-                }
-            }
+            this->CMD(DataBuffer);
 
         }
         //limite l'utilisation de la cpu (ms)
@@ -267,15 +234,11 @@ bool Watch_dog::auth(void)
     if(this->check_pwd())
         return true;
 
-    Tram RepData;
     std::stringstream DataBuffer;
-    RepData+="WD> ";
-    RepData+="Password: ";
 
-    this->Server->Write(0,RepData.get_c_data());
+    this->single_send("Password: ");
 
     DataBuffer.clear();
-    RepData.clear();
 
     if(!this->rcv_data(DataBuffer))
         return false;
@@ -286,17 +249,12 @@ bool Watch_dog::auth(void)
 
     if(!this->check_pwd())
     {
-        RepData+="WD> ";
-        RepData+="invalide password\n";
-        this->Server->Write(0,RepData.get_c_data());
-
+        this->single_send("invalide password");
         return false;
     }
     else
     {
-        RepData+="WD> ";
-        RepData+="enter HELP for show cmd possible\n";
-        this->Server->Write(0,RepData.get_c_data());
+        this->single_send("enter HELP for show cmd possible");
         return true;
     }
 
@@ -308,3 +266,115 @@ bool Watch_dog::check_pwd(void)
     return Extract_one_data<std::string>("pwd_hash")==picosha2::hash256_hex_string(this->password);
 }
 
+void Watch_dog::single_send(std::string const & rep)
+{
+    Tram RepData;
+
+    RepData+="WD> ";
+    RepData+=rep;
+    RepData+="\n";
+    this->Server->Write(0,RepData.get_c_data());
+}
+
+void Watch_dog::CMD(std::stringstream & data)
+{
+    std::string word("");
+    data >> word;
+    Tram RepData;
+
+    if(word=="HELP")
+    {
+        std::fstream If("HELP",std::ios::in);
+
+        if(!If)
+        {
+            this->single_send("help not found");
+            return;
+        }
+
+        std::string line;
+
+        RepData+="WD> ";
+
+        while(std::getline(If,line))
+        {
+            RepData+=line;
+            RepData+="\n";
+        }
+
+        this->Server->Write(0,RepData.get_c_data());
+        RepData.clear();
+
+        return;
+    }
+    else if(word=="MONITOR")
+    {
+        if(!this->SET<bool>(data,this->states.monitor))
+        {
+            this->single_send("invalide cmd/action");
+            return;
+        }
+        return;
+    }
+    else if(word=="PASSWORD")
+    {
+        if(!this->SET<std::string>(data,this->password))
+        {
+            this->single_send("invalide cmd/action");
+            return;
+        }
+        std::fstream Of("pwd_hash",std::ios::out);
+
+        if(Of)
+            Of << picosha2::hash256_hex_string(this->password);
+        else
+        {
+            this->single_send("password can not be change: hash not found");
+            return;
+        }
+
+        this->single_send("password has changed");
+
+        return;
+    }
+    else if(word=="RESTART")
+    {
+
+    }
+    else if(word=="STOP")
+    {
+
+    }
+    else if(word=="STATES")
+    {
+        this->single_send("stopping: "+std::string((this->states.stopping?"true":"false")));
+        this->single_send("quarentine: "+std::string((this->states.quarentine?"true":"false")));
+        this->single_send("as_client: "+std::string((this->states.as_client?"true":"false")));
+        this->single_send("tcp_ip: "+std::string((this->states.tcp_ip?"true":"false")));
+        this->single_send("monitor: "+std::string((this->states.monitor?"true":"false")));
+    }
+    else if(word=="LOG")
+    {
+
+    }
+    else if(word=="TCP_PORT")
+    {
+
+    }
+    else if(word=="MAX_FLOW")
+    {
+
+    }
+    else if(word=="PERIODE_TIME")
+    {
+
+    }
+    else if(word=="PERIODE_FILTER")
+    {
+
+    }
+    else if(word=="CONFIG")
+    {
+
+    }
+}

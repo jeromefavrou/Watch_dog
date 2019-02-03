@@ -28,11 +28,11 @@ public:
 private:
     struct State
     {
-        bool stopping:1;
-        bool quarentine:1;
-        bool as_client:1;
-        bool tcp_ip:1;
-        bool monitor:1;
+        bool stopping;
+        bool quarentine;
+        bool as_client;
+        bool tcp_ip;
+        bool monitor;
     };
 
     void server_client(void);
@@ -40,11 +40,27 @@ private:
     bool auth(void);
     bool rcv_data(std::stringstream & data);
     bool check_pwd(void);
+    void single_send(std::string const & rep);
 
     void restart(void);
     void stop(void);
     void quarentine(void);
     void log(void);
+
+    void CMD(std::stringstream & data);
+
+    template<class T> bool SET(std::stringstream & data,T & buff)
+    {
+        std::string w("");
+        data >> w;
+        if(w=="SET")
+        {
+            data >> buff;
+            return true;
+        }
+
+        return false;
+    }
 
     float debit_Mo_s;
 

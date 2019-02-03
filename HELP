@@ -1,0 +1,23 @@
+CMD 	ACTION 	VALUE TYPE
+HELP 	/ 	/
+MONITOR 	SET 	bool
+
+	GET 	/
+PASSWORD 	SET 	string
+RESTART 	/ 	
+STOP 	/ 	
+STATES 	GET 	/
+LOG 	GET 	/
+TCP_PORT 	SET 	int
+
+	GET 	
+MAX_FLOW 	SET 	float
+
+	GET 	/
+PERIODE_TIME 	SET 	int
+
+	GET 	/
+PERIODE_FILTER 	SET 	int
+
+	GET 	/
+CONFIG 	GET 	/
